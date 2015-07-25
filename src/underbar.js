@@ -329,17 +329,15 @@
     return function memoizedFunction() {
     // of the current function, store it's args in a real array
     var args = Array.prototype.slice.call(arguments);
-    console.log(args)
     // convert that array to string for easy lookup
     var argsString = args.toString();
-    console.log("argsString: " + argsString)
       // if args arn't in obj, then run appy on the func + args and store in ref obj
       if(refObj[argsString] === undefined) {
         refObj[argsString] = func.apply(this, arguments)
         return refObj[argsString];
       } else {
         return refObj[argsString];
-      }
+      } 
     }
   };
 
