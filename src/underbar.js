@@ -397,14 +397,42 @@
   // Calls the method named by functionOrKey on each value in the list.
   // Note: You will need to learn a bit about .apply to complete this.
   _.invoke = function(collection, functionOrKey, args) {
+    var newArr = [];
+    // get any passed in arguments
+      var passedArgs = Array.prototype.slice.call(arguments, 2);
+
+    // iterate over each element in array
+    _.each(collection, function(element) {
+        // if no args
+        if(typeof functionOrKey === "function") {
+            newArr.push(functionOrKey.apply(element, passedArgs));
+        } else {
+            newArr.push(element[functionOrKey].apply(element, passedArgs));
+        }
+    });
+    return newArr;
   };
+
 
   // Sort the object's values by a criterion produced by an iterator.
   // If iterator is a string, sort objects by that property with the name
   // of that string. For example, _.sortBy(people, 'name') should sort
   // an array of people by their name.
   _.sortBy = function(collection, iterator) {
-  };
+
+var newArr = [];
+
+    if(typeof iterator === "string") {
+        newArr = collection.sort(function(a,b) {
+            return a[iterator] - b[iterator];
+        });
+    } else {
+        newArr = collection.sort(function(a,b) {
+            return iterator(a) - iterator(b);
+        });
+    }
+    return newArr;
+};
 
   // Zip together two or more arrays with elements of the same index
   // going together.
@@ -412,23 +440,130 @@
   // Example:
   // _.zip(['a','b','c','d'], [1,2,3]) returns [['a',1], ['b',2], ['c',3], ['d',undefined]]
   _.zip = function() {
-  };
+
+    var zippedArray = [];
+    // figure out the number of arrays, that's how many times to loop through
+    // when iterating 
+    var args = Array.prototype.slice.apply(arguments);
+    // number of arrays passed
+    var argsLength = args.length;
+
+
+    var maxLengthArgs = _.map(args, function(item) {
+        return item.length;
+    });
+
+    var greatestArgLength = _.reduce(maxLengthArgs, function(maxLength, nextValue) {
+        if(maxLength < nextValue) {
+            return nextValue;
+        } else {
+            return maxLength;
+        }
+    });
+
+
+    // increment for each element
+    for(var element = 0; element < greatestArgLength; element++) {
+      var tempArray = [];
+      // iterate over each array
+      for(var arrayIndex = 0; arrayIndex < argsLength; arrayIndex++) {
+        // iterate over each array element
+        tempArray.push(args[arrayIndex][element]);
+        // at end of element sequence, cut out array and insert into zippedArray
+        if(arrayIndex === argsLength - 1) {
+          zippedArray.push(tempArray.slice());
+          tempArray = [];
+        }
+      }
+    }
+    return zippedArray;
+};
+
+   
 
   // Takes a multidimensional array and converts it to a one-dimensional array.
   // The new array should contain all elements of the multidimensional array.
   //
   // Hint: Use Array.isArray to check if something is an array
   _.flatten = function(nestedArray, result) {
+
+    var tempArray = [];
+
+    // loop through array and push elements to temp array
+    for(var arrayIterator = 0; arrayIterator < nestedArray.length; arrayIterator++) {
+        // if array, then recurse
+        if(Array.isArray(nestedArray[arrayIterator])){
+            // add the results of the recurse to the original tempArray
+            tempArray = tempArray.concat(_.flatten(nestedArray[arrayIterator]));
+        } else {
+            //
+            tempArray.push(nestedArray[arrayIterator]);
+        }
+    }
+    return tempArray;
   };
+
 
   // Takes an arbitrary number of arrays and produces an array that contains
   // every item shared between all the passed-in arrays.
   _.intersection = function() {
+    var args = Array.prototype.slice.call(arguments),
+        aArray = args.shift(),
+        bArrays = args,
+        currentElement,
+        intersectionArray = [],
+        isAnIntersection = false;
+
+    // iterate through array a
+    for(var aArrayIndex = 0; aArrayIndex < aArray.length; aArrayIndex++) {
+        currentElement = aArray[aArrayIndex];
+        // iterate through b+ arrays
+        isAnIntersection = _.some(bArrays, function(bArray) {
+
+            return _.some(bArray, function(value) {
+                return currentElement === value;
+            });
+        });       
+
+        // after looping through all B+ arrays for current aArray num
+        // push if the isAnIntersection var = true
+        if(isAnIntersection === true) {
+            intersectionArray.push(currentElement);
+        } 
+        isAnIntersection = false;
+    }
+
+    return intersectionArray;
   };
 
   // Take the difference between one array and a number of other arrays.
   // Only the elements present in just the first array will remain.
   _.difference = function(array) {
+    var args = Array.prototype.slice.call(arguments),
+        aArray = args.shift(),
+        bArrays = args,
+        currentElement,
+        differenceArray = [],
+        isDifferent = false;
+
+    // iterate through array a
+    for(var aArrayIndex = 0; aArrayIndex < aArray.length; aArrayIndex++) {
+        currentElement = aArray[aArrayIndex];
+        // iterate through b+ arrays
+        isDifferent = _.some(bArrays, function(bArray) {
+            return _.some(bArray, function(value) {
+                return currentElement === value;
+            });
+        });       
+
+        // after looping through all B+ arrays for current aArray num
+        // push if the isAnIntersection var = true
+        if(isDifferent === false) {
+            differenceArray.push(currentElement);
+        } 
+        isDifferent = false;
+    }
+    return differenceArray;
   };
 
   // Returns a function, that, when invoked, will only be triggered at most once
@@ -437,5 +572,45 @@
   //
   // Note: This is difficult! It may take a while to implement.
   _.throttle = function(func, wait) {
-  };
+    var firstCall = true,
+        startTime,
+        result,
+        callStack;
+
+    return function throttled() {
+        var args = Array.prototype.slice.call(arguments);
+        console.log("difference:  " + ((new Date().getMilliseconds()) - startTime) );
+        //console.log(((new Date().getMilliseconds()) - startTime) > wait);
+
+
+        // if first time calling, then invoke immediately
+        if(firstCall === true) {
+            result = func.apply(null, args);
+            firstCall = false;
+            startTime = new Date().getMilliseconds();
+            return result;
+        } else if( ((new Date().getMilliseconds()) - startTime) > wait) { // if after wait time
+            result = func.apply(null, args);
+            // reset clock
+            startTime = new Date().getMilliseconds();
+            return result;
+        } else if( ((new Date().getMilliseconds()) - startTime) < wait) { // if before wait time
+            // if no call scheduled in stack
+            if(callStack === false) {
+                callStack = true;
+                setTimeout(function() {
+                callStack = false;
+                result = func.apply(null, args);
+                // reset clock
+                startTime = new Date().getMilliseconds();
+                return result;
+                }, ((new Date().getMilliseconds()) - startTime) )
+            } else if(callStack === true) {
+                alert("error: too many calls");
+            }
+        }  
+    }
+};
+
+  
 }());
